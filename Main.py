@@ -64,8 +64,7 @@ def iniciar_sesion():
     
     if autenticar_usuario(usuario_id, password):
         print(f"Bienvenido de nuevo, {usuario_id}!")
-        # Aquí deberías cargar los datos del usuario desde la base de datos
-        # Por ahora usamos valores predeterminados como ejemplo
+
         usuario = Usuario(
             id=usuario_id,
             password=password,
