@@ -1,5 +1,5 @@
 class Libro:
-    def _init_(self, id, ritmo, final, elementos, puntuacion_global):
+    def __init__(self, id, ritmo, final, elementos, puntuacion_global):
         self.id = id
         self.ritmo = ritmo
         self.final = final

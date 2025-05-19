@@ -1,6 +1,6 @@
-from database.neo4j_connection import Neo4jConnection
+from Connection import Neo4jConnection
 
-conn = Neo4jConnection("bolt://localhost:7687", "neo4j", "tu_contraseña")
+conn = Neo4jConnection("bolt://localhost:7687", "neo4j", "libros123")
 
 def crear_usuario(usuario):
     query = """

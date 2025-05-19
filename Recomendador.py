@@ -1,5 +1,5 @@
-from engine.calculo_match import calcular_match
-from engine.reglas_adicionales import aplicar_reglas
+from Match import calcular_match
+from Reglas_adicionales import aplicar_reglas
 
 def recomendar_libros(usuario, libros):
     candidatos = [libro for libro in libros if libro.id not in usuario.aceptados + usuario.rechazados]
