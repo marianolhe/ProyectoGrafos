@@ -76,15 +76,48 @@ def crear_relacion_prefiere(usuario_id, genero):
 def crear_relacion_posee(libro_id):
     query = """
     MERGE (s:Sistema {id: 'sistema'})
+    WITH s
     MATCH (l:Libro {id: $libro_id})
     MERGE (s)-[:POSEE]->(l)
     """
     conn.run_query(query, {"libro_id": libro_id})
 
 def verificar_usuario_existente(usuario_id):
+    """Verifica si un usuario con el ID proporcionado ya existe en la base de datos"""
+    try:
+        with conn.driver.session() as session:
+            result = session.run(
+                "MATCH (u:Usuario {id: $usuario_id}) RETURN count(u) > 0 as exists",
+                {"usuario_id": usuario_id}
+            )
+            record = result.single()
+            return record and record["exists"]
+    except Exception as e:
+        print(f"Error al verificar usuario: {e}")
+        return False
+
+def obtener_datos_usuario(usuario_id):
+    """Obtiene los datos del usuario desde la base de datos."""
     query = """
     MATCH (u:Usuario {id: $usuario_id})
-    RETURN u LIMIT 1
+    RETURN u
     """
-    result = conn.run_query(query, {"usuario_id": usuario_id})
-    return result.single() is not None
+    result = conn.run_query(query, {"usuario_id": usuario_id}).single()
+    
+    if result:
+        usuario_data = result["u"]
+        return {
+            "ritmo": {
+                "rápido": usuario_data.get("ritmo_rapido", 0.0),
+                "lento": usuario_data.get("ritmo_lento", 0.0)
+            },
+            "finales": {
+                "feliz": usuario_data.get("final_feliz", 0.0),
+                "trágico": usuario_data.get("final_tragico", 0.0)
+            },
+            "elementos": usuario_data.get("elementos", []),
+            "aceptados": usuario_data.get("aceptados", []),
+            "rechazados": usuario_data.get("rechazados", [])
+        }
+    
+    return {}

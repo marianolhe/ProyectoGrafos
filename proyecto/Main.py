@@ -1,7 +1,7 @@
 from Usuario import Usuario
 from Libro import Libro
 from Recomendador import recomendar_libros
-from Datos import crear_usuario, crear_libro, crear_interaccion, autenticar_usuario, verificar_usuario_existente, crear_genero, crear_relacion_prefiere, crear_relacion_posee
+from Datos import crear_usuario, crear_libro, crear_interaccion, autenticar_usuario, verificar_usuario_existente, crear_genero, crear_relacion_prefiere, crear_relacion_posee, obtener_datos_usuario
 
 def mostrar_menu():
     print("\n===== SISTEMA DE RECOMENDACIÓN DE LIBROS =====")
@@ -64,13 +64,18 @@ def iniciar_sesion():
     
     if autenticar_usuario(usuario_id, password):
         print(f"Bienvenido de nuevo, {usuario_id}!")
-
+        
+        # Agregar función para cargar preferencias del usuario desde la base de datos
+        datos_usuario = obtener_datos_usuario(usuario_id)
+        
         usuario = Usuario(
             id=usuario_id,
             password=password,
-            ritmo={"rápido": 0.8, "lento": 0.2},
-            finales={"feliz": 0.6, "trágico": 0.4},
-            elementos=["giros", "personajes"]
+            ritmo=datos_usuario.get("ritmo", {"rápido": 0.0, "lento": 0.0}),
+            finales=datos_usuario.get("finales", {"feliz": 0.0, "trágico": 0.0}),
+            elementos=datos_usuario.get("elementos", []),
+            aceptados=datos_usuario.get("aceptados", []),
+            rechazados=datos_usuario.get("rechazados", [])
         )
         return usuario
     else:
