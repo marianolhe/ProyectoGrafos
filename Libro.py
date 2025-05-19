@@ -5,5 +5,7 @@ class Libro:
         self.final = final
         self.elementos = elementos
         self.puntuacion_global = puntuacion_global
+        self.puntaje = 0.0
+        self.motivo = ""
 
 
