@@ -129,7 +129,6 @@ if st.session_state.get('usuario_logueado', False):
                         st.write(f"- Elementos: {', '.join(libro.elementos)}")
                     
                     with col2:
-                        st.metric("Coincidencia", f"{(libro.puntaje/7)*100:.0f}%")
                         st.metric("Valoración", f"{libro.puntuacion_global}/5.0")
         else:
             st.warning("No encontramos recomendaciones que coincidan con tus preferencias. Por favor, evalúa más libros.")
