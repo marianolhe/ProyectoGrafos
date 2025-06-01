@@ -51,13 +51,15 @@ def autenticar_usuario(usuario_id, password):
 def crear_libro(libro):
     query = """
     MERGE (l:Libro {id: $id})
-    SET l.ritmo = $ritmo,
+    SET l.titulo = $titulo,
+        l.ritmo = $ritmo,
         l.final = $final,
         l.elementos = $elementos,
         l.puntuacion_global = $puntuacion_global
     """
     params = {
         "id": libro.id,
+        "titulo": libro.titulo,  # ← AGREGAR título
         "ritmo": libro.ritmo,
         "final": libro.final,
         "elementos": libro.elementos,

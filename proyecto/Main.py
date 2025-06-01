@@ -88,7 +88,8 @@ if st.session_state.get('usuario_logueado', False):
             col1, col2 = st.columns([2, 1])
             
             with col1:
-                st.subheader(f"📕 Libro: {libro_actual.id}")
+                st.subheader(f"📕 Libro: {libro_actual.titulo}")
+                st.caption(f"ID: {libro_actual.id}")
                 st.write(f"**Ritmo:** {libro_actual.ritmo}")
                 st.write(f"**Final:** {libro_actual.final}")
                 st.write(f"**Elementos:** {', '.join(libro_actual.elementos)}")
@@ -118,10 +119,11 @@ if st.session_state.get('usuario_logueado', False):
             
         if recomendaciones:
             for i, libro in enumerate(recomendaciones, 1):
-                with st.expander(f"📚 Recomendación #{i}: {libro.id} (Puntaje: {libro.puntaje:.2f})"):
+                with st.expander(f"📚 {libro.titulo} (Puntaje: {libro.puntaje:.2f})"):
                     col1, col2 = st.columns([3, 1])
                     
                     with col1:
+                        st.caption(f"ID: {libro.id}")
                         st.write(f"**Motivo:** {libro.motivo}")
                         st.write(f"**Características:** Ritmo {libro.ritmo}, Final {libro.final}")
                         st.write(f"**Elementos:** {', '.join(libro.elementos)}")
@@ -138,4 +140,3 @@ if st.session_state.get('usuario_logueado', False):
                 st.session_state.sistema.cerrar_sesion()
                 st.session_state.usuario_logueado = False
                 st.rerun()
-    

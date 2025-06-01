@@ -13,7 +13,7 @@ class SistemaRecomendacion:
         """Carga libros existentes desde la base de datos"""
         try:
             from Datos import conn
-            query = "MATCH (l:Libro) RETURN l.id, l.ritmo, l.final, l.elementos, l.puntuacion_global ORDER BY l.id"
+            query = "MATCH (l:Libro) RETURN l.id, l.titulo, l.ritmo, l.final, l.elementos, l.puntuacion_global ORDER BY l.id"
             result = conn.run_query(query)
             
             self.libros_sistema = []
@@ -23,7 +23,8 @@ class SistemaRecomendacion:
                     record["l.ritmo"],
                     record["l.final"], 
                     record["l.elementos"] or [],
-                    record["l.puntuacion_global"] or 0.0
+                    record["l.puntuacion_global"] or 0.0,
+                    record["l.titulo"] or f"Libro {record['l.id']}"
                 )
                 self.libros_sistema.append(libro)
                 
@@ -32,8 +33,8 @@ class SistemaRecomendacion:
         except Exception as e:
             print(f"Error cargando libros: {e}")
             # Mantener libros básicos si hay error
-            libro1 = Libro("L1", "rápido", "feliz", ["giros"], 4.7)
-            libro2 = Libro("L2", "lento", "trágico", ["personajes"], 4.2)
+            libro1 = Libro("L1", "rápido", "feliz", ["giros"], 4.7, "El Misterio de la Casa Antigua")
+            libro2 = Libro("L2", "lento", "trágico", ["personajes"], 4.2, "Amor en Tiempos Perdidos")
             self.libros_sistema = [libro1, libro2]
     
     def registrar_nuevo_usuario(self, usuario_id, password, generos, ritmo_op, final_op, elementos):
