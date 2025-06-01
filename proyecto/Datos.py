@@ -1,7 +1,12 @@
 from Connection import Neo4jConnection
 import hashlib
 
-conn = Neo4jConnection("bolt://localhost:7687", "neo4j", "libros123")
+conn = Neo4jConnection(
+    uri="neo4j+s://982b38ec.databases.neo4j.io",
+    user="neo4j", 
+    pwd="qMIuwlgM9GhNColurgycVECla2yQtyMHgNRSSsnihDI",
+    db="neo4j"
+)
 
 def crear_usuario(usuario):
     password_hash = hashlib.sha256(usuario.password.encode()).hexdigest()
@@ -30,13 +35,18 @@ def crear_usuario(usuario):
     conn.run_query(query, params)
 
 def autenticar_usuario(usuario_id, password):
-    password_hash = hashlib.sha256(password.encode()).hexdigest()
-    query = """
-    MATCH (u:Usuario {id: $usuario_id, password: $password})
-    RETURN u LIMIT 1
-    """
-    result = conn.run_query(query, {"usuario_id": usuario_id, "password": password_hash})
-    return result.single() is not None
+    try:
+        password_hash = hashlib.sha256(password.encode()).hexdigest()
+        with conn.driver.session() as session:
+            result = session.run(
+                "MATCH (u:Usuario {id: $usuario_id, password: $password}) RETURN count(u) > 0 as exists",
+                {"usuario_id": usuario_id, "password": password_hash}
+            )
+            record = result.single()
+            return record and record["exists"]
+    except Exception as e:
+        print(f"Error al autenticar usuario: {e}")
+        return False
 
 def crear_libro(libro):
     query = """
@@ -55,13 +65,45 @@ def crear_libro(libro):
     }
     conn.run_query(query, params)
 
-def crear_interaccion(usuario_id, libro_id, tipo):
-    query = f"""
-    MATCH (u:Usuario {{id: $usuario_id}})
-    MATCH (l:Libro {{id: $libro_id}})
-    MERGE (u)-[r:{tipo.upper()}]->(l)
-    """
-    conn.run_query(query, {"usuario_id": usuario_id, "libro_id": libro_id})
+def verificar_y_crear_interaccion(usuario_id, libro_id, tipo):
+    """Verifica que los nodos existan y luego crea la relación"""
+    try:
+        with conn.driver.session() as session:
+            # Primero verificar que ambos nodos existen
+            verificacion = session.run(
+                """
+                OPTIONAL MATCH (u:Usuario {id: $usuario_id})
+                OPTIONAL MATCH (l:Libro {id: $libro_id})
+                RETURN u IS NOT NULL as usuario_existe, l IS NOT NULL as libro_existe
+                """,
+                {"usuario_id": usuario_id, "libro_id": libro_id}
+            ).single()
+            
+            if not verificacion["usuario_existe"]:
+                print(f"ERROR: El usuario {usuario_id} no existe en la base de datos")
+                return False
+                
+            if not verificacion["libro_existe"]:
+                print(f"ERROR: El libro {libro_id} no existe en la base de datos")
+                return False
+            
+            # Si ambos existen, crear la relación
+            result = session.run(
+                f"""
+                MATCH (u:Usuario {{id: $usuario_id}})
+                MATCH (l:Libro {{id: $libro_id}})
+                MERGE (u)-[r:{tipo.upper()}]->(l)
+                RETURN count(r) as relacion_creada
+                """,
+                {"usuario_id": usuario_id, "libro_id": libro_id}
+            ).single()
+            
+            print(f"Relación {tipo} creada exitosamente")
+            return True
+            
+    except Exception as e:
+        print(f"ERROR al procesar interacción: {e}")
+        return False
 
 def crear_genero(nombre):
     conn.run_query("MERGE (:Genero {nombre: $nombre})", {"nombre": nombre})
@@ -98,26 +140,31 @@ def verificar_usuario_existente(usuario_id):
 
 def obtener_datos_usuario(usuario_id):
     """Obtiene los datos del usuario desde la base de datos."""
-    query = """
-    MATCH (u:Usuario {id: $usuario_id})
-    RETURN u
-    """
-    result = conn.run_query(query, {"usuario_id": usuario_id}).single()
-    
-    if result:
-        usuario_data = result["u"]
-        return {
-            "ritmo": {
-                "rápido": usuario_data.get("ritmo_rapido", 0.0),
-                "lento": usuario_data.get("ritmo_lento", 0.0)
-            },
-            "finales": {
-                "feliz": usuario_data.get("final_feliz", 0.0),
-                "trágico": usuario_data.get("final_tragico", 0.0)
-            },
-            "elementos": usuario_data.get("elementos", []),
-            "aceptados": usuario_data.get("aceptados", []),
-            "rechazados": usuario_data.get("rechazados", [])
-        }
-    
-    return {}
+    try:
+        with conn.driver.session() as session:
+            result = session.run(
+                "MATCH (u:Usuario {id: $usuario_id}) RETURN u",
+                {"usuario_id": usuario_id}
+            )
+            record = result.single()
+            
+            if not record:
+                return {}
+                
+            usuario_data = record["u"]
+            return {
+                "ritmo": {
+                    "rápido": usuario_data.get("ritmo_rapido", 0.0),
+                    "lento": usuario_data.get("ritmo_lento", 0.0)
+                },
+                "finales": {
+                    "feliz": usuario_data.get("final_feliz", 0.0),
+                    "trágico": usuario_data.get("final_tragico", 0.0)
+                },
+                "elementos": usuario_data.get("elementos", []),
+                "aceptados": usuario_data.get("aceptados", []),
+                "rechazados": usuario_data.get("rechazados", [])
+            }
+    except Exception as e:
+        print(f"Error al obtener datos del usuario: {e}")
+        return {}

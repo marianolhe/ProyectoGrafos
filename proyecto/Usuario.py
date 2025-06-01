@@ -1,5 +1,5 @@
 class Usuario:
-    def __init__(self, id, ritmo,password,finales, elementos, aceptados=None, rechazados=None):
+    def __init__(self, id, password, ritmo, finales, elementos, aceptados=None, rechazados=None):
         self.id = id
         self.password = password
         self.ritmo = ritmo

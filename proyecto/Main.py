@@ -1,121 +1,141 @@
-from Usuario import Usuario
-from Libro import Libro
-from Recomendador import recomendar_libros
-from Datos import crear_usuario, crear_libro, crear_interaccion, autenticar_usuario, verificar_usuario_existente, crear_genero, crear_relacion_prefiere, crear_relacion_posee, obtener_datos_usuario
+# Crear archivo: streamlit_app.py
+import streamlit as st
+from Sistema_Recomendacion import SistemaRecomendacion
 
-def mostrar_menu():
-    print("\n===== SISTEMA DE RECOMENDACIÓN DE LIBROS =====")
-    print("1. Iniciar sesión")
-    print("2. Registrarse")
-    print("3. Salir")
-    return input("Seleccione una opción: ")
+# Configurar página
+st.set_page_config(
+    page_title="Sistema de Recomendación de Libros",
+    page_icon="📚",
+    layout="wide"
+)
 
-def crear_nuevo_usuario():
-    usuario_valido = False
-    while not usuario_valido:
-        usuario_id = input("Crea un ID de usuario: ")
-        usuario_valido = not verificar_usuario_existente(usuario_id)
-        if not usuario_valido:
-            print("Este ID de usuario ya existe. Por favor, elige otro.")
+# Inicializar sistema
+if 'sistema' not in st.session_state:
+    st.session_state.sistema = SistemaRecomendacion()
+
+# Título principal
+st.title("📚 Sistema de Recomendación con Dijkstra")
+st.markdown("*Encuentra tu próxima lectura favorita usando algoritmos de grafos*")
+
+# Sidebar para navegación
+with st.sidebar:
+    st.header("🔐 Autenticación")
+    opcion = st.radio("Selecciona:", ["Iniciar Sesión", "Registrarse"])
+
+# Panel principal
+if opcion == "Registrarse":
+    st.header("📝 Crear Nueva Cuenta")
     
-    password = input("Crea una contraseña: ")
-    print(f"\nCreando nuevo usuario {usuario_id}...\nResponde el siguiente cuestionario para configurar tus preferencias.")
-    
-    # Cuestionario obligatorio para nuevos usuarios
-    print("Selecciona tus 3 géneros favoritos (separados por coma):")
-    print("Opciones: Thriller, Fantasía, Ciencia Ficción, Romance, Histórico, Misterio")
-    generos = input("Géneros: ").split(',')
-    generos = [g.strip().capitalize() for g in generos[:3]]
-
-    print("\n¿Prefieres historias con ritmo rápido y dinámico o lento y detallado?")
-    ritmo_op = input("(rápido/lento/ninguno): ").strip().lower()
-    ritmo = {"rápido": 1.0 if ritmo_op == "rápido" else 0.0,
-            "lento": 1.0 if ritmo_op == "lento" else 0.0}
-
-    print("\n¿Qué tipo de finales prefieres?")
-    print("Opciones: sorprendentes, felices, trágicos, abiertos")
-    final_op = input("Final: ").strip().lower()
-    finales = {"feliz": 1.0 if final_op == "felices" else 0.0,
-            "trágico": 1.0 if final_op == "trágicos" else 0.0}
-
-    print("\n¿Qué elementos te enganchan más en una historia? (elige hasta 2 separados por coma)")
-    print("Opciones: giros, personajes, mundos, romance, acción")
-    elementos = input("Elementos: ").strip().lower().split(',')
-    elementos = [e.strip() for e in elementos[:2]]
-
-    usuario = Usuario(
-        id=usuario_id,
-        password=password,
-        ritmo=ritmo,
-        finales=finales,
-        elementos=elementos
-    )
-    crear_usuario(usuario)
-    for g in generos:
-        crear_genero(g)
-        crear_relacion_prefiere(usuario_id, g)
+    with st.form("registro"):
+        col1, col2 = st.columns(2)
         
-    print(f"¡Usuario {usuario_id} creado exitosamente!")
-    return usuario
-
-def iniciar_sesion():
-    usuario_id = input("Ingresa tu ID de usuario: ")
-    password = input("Ingresa tu contraseña: ")
-    
-    if autenticar_usuario(usuario_id, password):
-        print(f"Bienvenido de nuevo, {usuario_id}!")
-        
-        # Agregar función para cargar preferencias del usuario desde la base de datos
-        datos_usuario = obtener_datos_usuario(usuario_id)
-        
-        usuario = Usuario(
-            id=usuario_id,
-            password=password,
-            ritmo=datos_usuario.get("ritmo", {"rápido": 0.0, "lento": 0.0}),
-            finales=datos_usuario.get("finales", {"feliz": 0.0, "trágico": 0.0}),
-            elementos=datos_usuario.get("elementos", []),
-            aceptados=datos_usuario.get("aceptados", []),
-            rechazados=datos_usuario.get("rechazados", [])
+        with col1:
+            usuario_id = st.text_input("ID de Usuario")
+            password = st.text_input("Contraseña", type="password")
+            
+        with col2:
+            generos = st.multiselect(
+                "Géneros Favoritos (max 3)",
+                ["Thriller", "Romance", "Ciencia Ficción", "Fantasía", "Histórico", "Misterio"],
+                max_selections=3
+            )
+            
+        ritmo = st.radio("Ritmo Preferido:", ["rápido", "lento"])
+        final = st.radio("Finales Preferidos:", ["felices", "trágicos"])
+        elementos = st.multiselect(
+            "Elementos Narrativos (max 2):",
+            ["giros", "personajes", "mundos", "romance", "acción"],
+            max_selections=2
         )
-        return usuario
-    else:
-        print("ID de usuario o contraseña incorrectos.")
-        return None
+        
+        if st.form_submit_button("🚀 Crear Cuenta"):
+            if usuario_id and password:
+                exito, mensaje = st.session_state.sistema.registrar_nuevo_usuario(
+                    usuario_id, password, generos, ritmo, final, elementos
+                )
+                if exito:
+                    st.success(mensaje)
+                    st.balloons()
+                else:
+                    st.error(mensaje)
 
-# Programa principal
-menu_activo = True
-usuario = None
-
-while menu_activo and usuario is None:
-    opcion = mostrar_menu()
+elif opcion == "Iniciar Sesión":
+    st.header("🔑 Acceder al Sistema")
     
-    if opcion == "1":
-        usuario = iniciar_sesion()
-    elif opcion == "2":
-        usuario = crear_nuevo_usuario()
-    elif opcion == "3":
-        print("Gracias por usar nuestro sistema. ¡Hasta pronto!")
-        menu_activo = False
-    else:
-        print("Opción no válida. Por favor, intente de nuevo.")
+    with st.form("login"):
+        usuario_id = st.text_input("ID de Usuario")
+        password = st.text_input("Contraseña", type="password")
+        
+        if st.form_submit_button("🔓 Iniciar Sesión"):
+            if usuario_id and password:
+                exito, mensaje = st.session_state.sistema.autenticar_usuario(usuario_id, password)
+                if exito:
+                    st.success(mensaje)
+                    st.session_state.usuario_logueado = True
+                else:
+                    st.error(mensaje)
 
-# Si el usuario ha salido del menú sin iniciar sesión, terminamos el programa
-if usuario is None:
-    exit()
+# Si el usuario está logueado, mostrar funcionalidades principales
+if st.session_state.get('usuario_logueado', False):
+    st.header("📖 Evaluar Libros")
+    
+    libros_evaluar = st.session_state.sistema.obtener_libros_para_evaluar()
+    
+    if libros_evaluar:
+        libro_actual = libros_evaluar[0]  # Mostrar primer libro
+        
+        with st.container():
+            col1, col2 = st.columns([2, 1])
+            
+            with col1:
+                st.subheader(f"📕 Libro: {libro_actual.id}")
+                st.write(f"**Ritmo:** {libro_actual.ritmo}")
+                st.write(f"**Final:** {libro_actual.final}")
+                st.write(f"**Elementos:** {', '.join(libro_actual.elementos)}")
+                st.write(f"**Puntuación:** {libro_actual.puntuacion_global}/5.0")
+            
+            with col2:
+                col_a, col_r = st.columns(2)
+                
+                with col_a:
+                    if st.button("✅ Aceptar", use_container_width=True):
+                        exito, msg = st.session_state.sistema.evaluar_libro(libro_actual.id, True)
+                        st.success("¡Libro aceptado!")
+                        st.rerun()
+                
+                with col_r:
+                    if st.button("❌ Rechazar", use_container_width=True):
+                        exito, msg = st.session_state.sistema.evaluar_libro(libro_actual.id, False)
+                        st.info("Libro rechazado")
+                        st.rerun()
+    
+    # Mostrar recomendaciones
+    st.header("🎯 Recomendaciones Personalizadas")
+    
+    if st.button("🔄 Generar Recomendaciones con Dijkstra"):
+        with st.spinner("Calculando rutas óptimas..."):
+            recomendaciones = st.session_state.sistema.obtener_recomendaciones()
+            
+        if recomendaciones:
+            for i, libro in enumerate(recomendaciones, 1):
+                with st.expander(f"📚 Recomendación #{i}: {libro.id} (Puntaje: {libro.puntaje:.2f})"):
+                    col1, col2 = st.columns([3, 1])
+                    
+                    with col1:
+                        st.write(f"**Motivo:** {libro.motivo}")
+                        st.write(f"**Características:** Ritmo {libro.ritmo}, Final {libro.final}")
+                        st.write(f"**Elementos:** {', '.join(libro.elementos)}")
+                    
+                    with col2:
+                        st.metric("Puntuación Global", f"{libro.puntuacion_global}/5.0")
+        else:
+            st.warning("No hay recomendaciones disponibles. Evalúa más libros.")
 
-# Continuar con el resto del programa una vez que el usuario ha iniciado sesión
-libro1 = Libro("L1", "rápido", "feliz", ["giros"], 4.7)
-libro2 = Libro("L2", "lento", "trágico", ["personajes"], 4.2)
-
-crear_libro(libro1)
-crear_libro(libro2)
-crear_relacion_posee("L1")
-crear_relacion_posee("L2")
-crear_interaccion(usuario.id, "L1", "ACEPTO")
-crear_interaccion(usuario.id, "L2", "RECHAZO")
-
-libros = [libro1, libro2]
-recomendaciones = recomendar_libros(usuario, libros)
-
-for libro in recomendaciones:
-    print(f"Libro recomendado: {libro.id} | Puntaje: {libro.puntaje:.2f} | Motivo: Coincide en {libro.motivo}")
+    # Botón de cerrar sesión
+    if st.session_state.get('usuario_logueado', False):
+        with st.sidebar:
+            if st.button("🔓 Cerrar Sesión"):
+                st.session_state.sistema.cerrar_sesion()
+                st.session_state.usuario_logueado = False
+                st.rerun()
+    
