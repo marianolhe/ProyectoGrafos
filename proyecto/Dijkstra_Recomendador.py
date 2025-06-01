@@ -9,37 +9,48 @@ conn = Neo4jConnection(
 )
 
 def recomendar_con_dijkstra(usuario_id, limite=5):
-    """Implementa recomendaciones usando algoritmo de Dijkstra simplificado"""
     try:
-        # Consulta que simula Dijkstra calculando "distancias" desde el usuario
         query = """
         MATCH (usuario:Usuario {id: $usuario_id})
         MATCH (libro:Libro)
         WHERE NOT EXISTS((usuario)-[:ACEPTO|RECHAZO]->(libro))
         
-        // Calcular distancia basada en preferencias
+        // Calcular compatibilidad basada en preferencias del usuario
         WITH libro, usuario,
              CASE 
-                WHEN EXISTS((usuario)-[:ACEPTO]->(:Libro {ritmo: libro.ritmo})) THEN 1.0
-                WHEN EXISTS((usuario)-[:PREFIERE]->(:Genero)) THEN 2.0
-                ELSE 5.0
-             END as distancia_base
+                WHEN libro.ritmo = usuario.ritmo_preferido THEN 3
+                ELSE 0
+             END + 
+             CASE 
+                WHEN libro.final = usuario.final_preferido THEN 2
+                ELSE 0
+             END +
+             CASE 
+                WHEN any(elem IN libro.elementos WHERE elem IN usuario.elementos) THEN 2
+                ELSE 0
+             END as puntuacion_match
         
-        // Ajustar por características del libro
-        WITH libro, 
-             distancia_base + 
-             CASE libro.puntuacion_global
-                WHEN null THEN 2.0
-                ELSE (5.0 - libro.puntuacion_global)
-             END as distancia_total
+        // Calcular motivo de recomendación
+        WITH libro, puntuacion_match,
+             CASE 
+                WHEN libro.ritmo = usuario.ritmo_preferido 
+                THEN 'coincide con tu ritmo de lectura preferido'
+                WHEN libro.final = usuario.final_preferido 
+                THEN 'tiene el tipo de final que prefieres'
+                WHEN any(elem IN libro.elementos WHERE elem IN usuario.elementos)
+                THEN 'contiene elementos narrativos que te gustan'
+                ELSE 'podría interesarte por sus características'
+             END as motivo
         
         RETURN libro.id as libro_id,
+               libro.titulo as titulo,
                libro.ritmo as ritmo,
                libro.final as final,
                libro.elementos as elementos,
                libro.puntuacion_global as puntuacion,
-               distancia_total as distancia
-        ORDER BY distancia_total ASC
+               puntuacion_match as puntaje,
+               motivo
+        ORDER BY puntuacion_match DESC
         LIMIT $limite
         """
         
@@ -52,16 +63,17 @@ def recomendar_con_dijkstra(usuario_id, limite=5):
                 record["ritmo"],
                 record["final"],
                 record["elementos"] or [],
-                record["puntuacion"] or 0.0
+                record["puntuacion"] or 0.0,
+                record["titulo"]
             )
-            libro.puntaje = 10.0 - record["distancia"]
-            libro.motivo = f"ruta óptima (distancia: {record['distancia']:.2f})"
+            libro.puntaje = record["puntaje"]
+            libro.motivo = record["motivo"]
             recomendaciones.append(libro)
         
         return recomendaciones
         
     except Exception as e:
-        print(f"Error en Dijkstra: {e}")
+        print(f"Error en recomendaciones: {e}")
         return []
     
 def limpiar_grafo_proyectado():

@@ -110,29 +110,30 @@ if st.session_state.get('usuario_logueado', False):
                         st.info("Libro rechazado")
                         st.rerun()
     
-    # Mostrar recomendaciones
-    st.header("🎯 Recomendaciones Personalizadas")
-    
-    if st.button("🔄 Generar Recomendaciones con Dijkstra"):
-        with st.spinner("Calculando rutas óptimas..."):
+    # En la sección de mostrar recomendaciones
+    if st.button("🔄 Generar Recomendaciones Personalizadas"):
+        with st.spinner("Analizando tus preferencias..."):
             recomendaciones = st.session_state.sistema.obtener_recomendaciones()
             
         if recomendaciones:
+            st.subheader("📚 Libros que podrían gustarte")
             for i, libro in enumerate(recomendaciones, 1):
-                with st.expander(f"📚 {libro.titulo} (Puntaje: {libro.puntaje:.2f})"):
+                with st.expander(f"Recomendación #{i}: {libro.titulo}"):
                     col1, col2 = st.columns([3, 1])
                     
                     with col1:
-                        st.caption(f"ID: {libro.id}")
-                        st.write(f"**Motivo:** {libro.motivo}")
-                        st.write(f"**Características:** Ritmo {libro.ritmo}, Final {libro.final}")
-                        st.write(f"**Elementos:** {', '.join(libro.elementos)}")
+                        st.write(f"**¿Por qué te lo recomendamos?** {libro.motivo}")
+                        st.write("**Características:**")
+                        st.write(f"- Ritmo: {libro.ritmo}")
+                        st.write(f"- Final: {libro.final}")
+                        st.write(f"- Elementos: {', '.join(libro.elementos)}")
                     
                     with col2:
-                        st.metric("Puntuación Global", f"{libro.puntuacion_global}/5.0")
+                        st.metric("Coincidencia", f"{(libro.puntaje/7)*100:.0f}%")
+                        st.metric("Valoración", f"{libro.puntuacion_global}/5.0")
         else:
-            st.warning("No hay recomendaciones disponibles. Evalúa más libros.")
-
+            st.warning("No encontramos recomendaciones que coincidan con tus preferencias. Por favor, evalúa más libros.")
+  
     # Botón de cerrar sesión
     if st.session_state.get('usuario_logueado', False):
         with st.sidebar:
